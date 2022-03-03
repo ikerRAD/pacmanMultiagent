@@ -5,6 +5,7 @@
 from util import manhattanDistance
 from game import Directions
 import random, util
+import math
 
 from game import Agent
 
@@ -35,10 +36,9 @@ class ReflexAgent(Agent):
         scores = [self.evaluationFunction(gameState, action) for action in legalMoves]
         bestScore = max(scores)
         bestIndices = [index for index in range(len(scores)) if scores[index] == bestScore]
-        chosenIndex = random.choice(bestIndices) # Pick randomly among the best
-
+        chosenIndex = random.choice(bestIndices) # Pick randomly among the bes
         "Add more of your code here if you want to"
-
+            
         return legalMoves[chosenIndex]
 
     def evaluationFunction(self, currentGameState, action):
@@ -57,14 +57,52 @@ class ReflexAgent(Agent):
         to create a masterful evaluation function.
         """
         # Useful information you can extract from a GameState (pacman.py)
-        successorGameState = currentGameState.generatePacmanSuccessor(action)
-        newPos = successorGameState.getPacmanPosition()
-        newFood = successorGameState.getFood()
+        successorGameState = currentGameState.generatePacmanSuccessor(action) 
+        newPos = successorGameState.getPacmanPosition() #posicion
+        newFood = successorGameState.getFood().asList() #Foodgrid
         newGhostStates = successorGameState.getGhostStates()
-        newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
+        newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates] #Tiempo que les queda asustados
+        ghostPositions = [ghostState.getPosition() for ghostState in newGhostStates] #Posición de los fantasmas
 
         "*** YOUR CODE HERE ***"
-        return successorGameState.getScore()
+        
+        evalu = 0
+        
+       
+        if action != Directions.STOP:
+            mini = math.inf
+            for pos in newFood:
+                m = abs(newPos[0] - pos[0]) + abs(newPos[1] - pos[1])
+                if m < mini:
+                    mini = m
+    
+            evalu += 10/(mini)
+        
+        
+        if all([x==0 for x in newScaredTimes]):
+            mini = math.inf
+            for pos in ghostPositions:
+                m = abs(newPos[0] - pos[0]) + abs(newPos[1] - pos[1]) 
+                if m < mini:
+                    mini = m
+            evalu -= 15/(mini + 0.01)
+        else:
+            mini1 = math.inf
+            mini2 = math.inf
+            mt = math.inf
+            for pos,time in zip(ghostPositions,newScaredTimes):
+                m = abs(newPos[0] - pos[0]) + abs(newPos[1] - pos[1]) 
+                if time == 0:
+                    if m < mini1:
+                        mini1 = m
+                else:
+                    if m < mini2:
+                        mini2 = m
+                        mt = time
+            
+            evalu -= 15/(mini1+0.01)
+            evalu += 10/(mini2)*time**2
+        return int(evalu + successorGameState.getScore())
 
 def scoreEvaluationFunction(currentGameState):
     """
