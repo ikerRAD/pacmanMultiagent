@@ -36,9 +36,10 @@ class ReflexAgent(Agent):
         scores = [self.evaluationFunction(gameState, action) for action in legalMoves]
         bestScore = max(scores)
         bestIndices = [index for index in range(len(scores)) if scores[index] == bestScore]
-        chosenIndex = random.choice(bestIndices) # Pick randomly among the bes
+        chosenIndex = random.choice(bestIndices) # Pick randomly among the best
+
         "Add more of your code here if you want to"
-            
+
         return legalMoves[chosenIndex]
 
     def evaluationFunction(self, currentGameState, action):
@@ -57,52 +58,14 @@ class ReflexAgent(Agent):
         to create a masterful evaluation function.
         """
         # Useful information you can extract from a GameState (pacman.py)
-        successorGameState = currentGameState.generatePacmanSuccessor(action) 
-        newPos = successorGameState.getPacmanPosition() #posicion
-        newFood = successorGameState.getFood().asList() #Foodgrid
+        successorGameState = currentGameState.generatePacmanSuccessor(action)
+        newPos = successorGameState.getPacmanPosition()
+        newFood = successorGameState.getFood()
         newGhostStates = successorGameState.getGhostStates()
-        newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates] #Tiempo que les queda asustados
-        ghostPositions = [ghostState.getPosition() for ghostState in newGhostStates] #Posición de los fantasmas
+        newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
         "*** YOUR CODE HERE ***"
-        
-        evalu = 0
-        
-       
-        if action != Directions.STOP:
-            mini = math.inf
-            for pos in newFood:
-                m = abs(newPos[0] - pos[0]) + abs(newPos[1] - pos[1])
-                if m < mini:
-                    mini = m
-    
-            evalu += 10/(mini)
-        
-        
-        if all([x==0 for x in newScaredTimes]):
-            mini = math.inf
-            for pos in ghostPositions:
-                m = abs(newPos[0] - pos[0]) + abs(newPos[1] - pos[1]) 
-                if m < mini:
-                    mini = m
-            evalu -= 15/(mini + 0.01)
-        else:
-            mini1 = math.inf
-            mini2 = math.inf
-            mt = math.inf
-            for pos,time in zip(ghostPositions,newScaredTimes):
-                m = abs(newPos[0] - pos[0]) + abs(newPos[1] - pos[1]) 
-                if time == 0:
-                    if m < mini1:
-                        mini1 = m
-                else:
-                    if m < mini2:
-                        mini2 = m
-                        mt = time
-            
-            evalu -= 15/(mini1+0.01)
-            evalu += 10/(mini2)*time**2
-        return int(evalu + successorGameState.getScore())
+        return successorGameState.getScore()
 
 def scoreEvaluationFunction(currentGameState):
     """
@@ -163,7 +126,42 @@ class MinimaxAgent(MultiAgentSearchAgent):
         Returns whether or not the game state is a losing state
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        depth = self.depth #tope de expansión
+        maxAgentes = gameState.getNumAgents() #numero de agentes
+        moves = gameState.getLegalActions(0) #movimientos posibles
+        states = [gameState.generateSuccessor(0,move) for move in moves] #estados de esos movimientos
+        
+        move = moves[0]
+        m = -math.inf
+        for i in range(len(moves)):
+            p = self.value(states[i], depth, 1, maxAgentes)
+            if p > m:
+                m = p
+                move = moves[i]
+        return move
+        
+    def value(self, state, depth, agent, maxAgents):
+        
+        if state.isWin() or state.isLose() or depth == 0:
+            return self.evaluationFunction(state)
+        
+        if agent:
+            temp = math.inf
+        else:
+            temp = -math.inf
+        
+        states = [state.generateSuccessor(agent, move) for move in state.getLegalActions(agent)]
+        
+        for succ_state in states:
+            if agent:
+                if agent+1 == maxAgents:
+                    temp = min(temp, self.value(succ_state, depth-1, 0, maxAgents))
+                else:
+                    temp = min(temp, self.value(succ_state, depth, agent+1, maxAgents))
+            else:
+                temp = max(temp, self.value(succ_state, depth, agent+1, maxAgents))
+                
+        return temp
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
