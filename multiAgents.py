@@ -226,8 +226,44 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         legal moves.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
-
+        depth = self.depth #tope de expansión
+        maxAgentes = gameState.getNumAgents() #numero de agentes
+        moves = gameState.getLegalActions(0) #movimientos posibles
+        states = [gameState.generateSuccessor(0,move) for move in moves] #estados de esos movimientos
+        
+        move = moves[0]
+        m = -math.inf
+        for i in range(len(moves)):
+            p = self.value(states[i], depth, 1, maxAgentes)
+            if p > m:
+                m = p
+                move = moves[i]
+        return move
+       
+    def value(self, state, depth, agent, maxAgents):
+        
+        if state.isWin() or state.isLose() or depth == 0:
+            return self.evaluationFunction(state)
+    
+        if agent:
+            temp = 0
+        else:
+            temp = -math.inf
+        
+        states = [state.generateSuccessor(agent, move) for move in state.getLegalActions(agent)]
+        
+        for succ_state in states:
+            if agent:
+                if agent+1 == maxAgents:
+                    temp += 1/len(states) * self.value(succ_state, depth-1, 0, maxAgents)
+                else:
+                    temp += 1/len(states) * self.value(succ_state, depth, agent+1, maxAgents)
+            else:
+                temp = max(temp, self.value(succ_state, depth, agent+1, maxAgents))
+                
+        return temp
+        
+        
 def betterEvaluationFunction(currentGameState):
     """
     Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
