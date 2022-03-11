@@ -211,17 +211,61 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         Returns the minimax action using self.depth and self.evaluationFunction
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        depth = self.depth #tope de expansión
+        maxAgentes = gameState.getNumAgents() #numero de agentes
+        moves = gameState.getLegalActions(0) #movimientos posibles
+        states = [gameState.generateSuccessor(0,move) for move in moves] #estados de esos movimientos
+        
+        move = moves[0]
+        m = -math.inf
+        alpha = -math.inf
+        beta = math.inf
+        for i in range(len(moves)):
+            p = self.value(states[i], depth, 1, maxAgentes, alpha, beta)
+            if p > m:
+                m = p
+                move = moves[i]
+        return move
+
+
+    def value(self, state, depth, agent, maxAgents, alpha, beta):
+        if state.isWin() or state.isLose() or depth == 0:
+            return self.evaluationFunction(state)
+        
+        if agent:
+            v = math.inf
+        else:
+            v = -math.inf
+        
+        states = [state.generateSuccessor(agent, move) for move in state.getLegalActions(agent)]
+        
+        for succ_state in states:
+            if agent:
+                if agent+1 == maxAgents:
+                    v = min(v, self.value(succ_state, depth-1, 0, maxAgents,alpha, beta))
+                    if v<=alpha:
+                        return v
+                    beta = min(v,beta)
+                else:
+                    v = min(v, self.value(succ_state, depth, agent+1, maxAgents,alpha, beta))
+                    if v<=alpha:
+                        return v
+                    beta = min(v,beta)
+            else:
+                v = max(v, self.value(succ_state, depth, agent+1, maxAgents, alpha, beta))
+                if v>=beta:
+                    return v
+                alpha = max(v,alpha)       
+        return v
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
       Your expectimax agent (question 4)
     """
 
-    def getAction(self, gameState):
+     def getAction(self, gameState):
         """
         Returns the expectimax action using self.depth and self.evaluationFunction
-
         All ghosts should be modeled as choosing uniformly at random from their
         legal moves.
         """
