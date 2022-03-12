@@ -313,8 +313,6 @@ def betterEvaluationFunction(currentGameState):
     ssc = sum(sc)
     sgd = sum (gd)
     
-    
-    reciprocalfoodDistance = 1.0 / (sum(fd) + 0.00001)
         
     ret = currentGameState.getScore()  + 1 / (sum(fd) + 0.00001) + nf
 
