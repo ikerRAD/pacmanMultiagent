@@ -59,51 +59,28 @@ class ReflexAgent(Agent):
         """
         # Useful information you can extract from a GameState (pacman.py)
         successorGameState = currentGameState.generatePacmanSuccessor(action)
-        newPos = successorGameState.getPacmanPosition()
-        newFood = successorGameState.getFood()
-        newGhostStates = successorGameState.getGhostStates()
-        newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
-        ghostPositions = [ghostState.getPosition() for ghostState in newGhostStates] #Posición de los fantasmas
-
-        "*** YOUR CODE HERE ***"
+        
+        if successorGameState.isWin():
+            return math.inf
+        elif successorGameState.isLose():
+            return -math.inf
+        
+        
+        foodDist = [manhattanDistance(successorGameState.getPacmanPosition(), p) for p in successorGameState.getFood().asList()]
         
         evalu = 0
         
        
-        if action != Directions.STOP:
-            mini = math.inf
-            for pos in newFood:
-                m = abs(newPos[0] - pos[0]) + abs(newPos[1] - pos[1])
-                if m < mini:
-                    mini = m
-    
-            evalu += 10/(mini)
-        
-        
-        if all([x==0 for x in newScaredTimes]):
-            mini = math.inf
-            for pos in ghostPositions:
-                m = abs(newPos[0] - pos[0]) + abs(newPos[1] - pos[1]) 
-                if m < mini:
-                    mini = m
-            evalu -= 15/(mini + 0.01)
-        else:
-            mini1 = math.inf
-            mini2 = math.inf
-            mt = math.inf
-            for pos,time in zip(ghostPositions,newScaredTimes):
-                m = abs(newPos[0] - pos[0]) + abs(newPos[1] - pos[1]) 
-                if time == 0:
-                    if m < mini1:
-                        mini1 = m
-                else:
-                    if m < mini2:
-                        mini2 = m
-                        mt = time
+        if action == Directions.STOP:
             
-            evalu -= 15/(mini1+0.01)
-            evalu += 10/(mini2)*time**2
-        return int(evalu + successorGameState.getScore())
+            evalu -= 10
+
+        if len(successorGameState.getFood().asList()) < len(currentGameState.getFood().asList()):
+            evalu += 150
+               
+            
+            
+        return int(evalu - min(foodDist))
 
 def scoreEvaluationFunction(currentGameState):
     """
@@ -221,10 +198,15 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         alpha = -math.inf
         beta = math.inf
         for i in range(len(moves)):
-            p = self.value(states[i], depth, 1, maxAgentes, alpha, beta)
+            p = self.value(states[i], self.depth, 1, maxAgentes, alpha, beta)
+            
             if p > m:
                 m = p
                 move = moves[i]
+                
+            if m > beta:
+                return move
+            alpha = max(m,alpha)
         return move
 
 
@@ -237,33 +219,34 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         else:
             v = -math.inf
         
-        states = [state.generateSuccessor(agent, move) for move in state.getLegalActions(agent)]
-        
-        for succ_state in states:
+        moves = [ move for move in state.getLegalActions(agent)]
+
+        for move in moves:
             if agent:
                 if agent+1 == maxAgents:
-                    v = min(v, self.value(succ_state, depth-1, 0, maxAgents,alpha, beta))
-                    if v<=alpha:
-                        return v
-                    beta = min(v,beta)
+                    v = min(v, self.value(state.generateSuccessor(agent,move), depth-1, 0, maxAgents,alpha, beta))
+                    
                 else:
-                    v = min(v, self.value(succ_state, depth, agent+1, maxAgents,alpha, beta))
-                    if v<=alpha:
-                        return v
-                    beta = min(v,beta)
+                    v = min(v, self.value(state.generateSuccessor(agent,move), depth, agent+1, maxAgents,alpha, beta))
+                    
+                if v < alpha:
+                    return v
+                beta = min(v, beta)
+                
             else:
-                v = max(v, self.value(succ_state, depth, agent+1, maxAgents, alpha, beta))
-                if v>=beta:
+                v = max(v, self.value(state.generateSuccessor(agent,move), depth, agent+1, maxAgents, alpha, beta))
+                if v > beta:
                     return v
                 alpha = max(v,alpha)       
         return v
+    
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
       Your expectimax agent (question 4)
     """
 
-     def getAction(self, gameState):
+    def getAction(self, gameState):
         """
         Returns the expectimax action using self.depth and self.evaluationFunction
         All ghosts should be modeled as choosing uniformly at random from their
@@ -316,7 +299,40 @@ def betterEvaluationFunction(currentGameState):
     DESCRIPTION: <write something here so we know what you did>
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    #datos extraibles del estado
+    p = currentGameState.getPacmanPosition() 
+    f = currentGameState.getFood() 
+    g = currentGameState.getGhostStates() 
+    ncaps = len(currentGameState.getCapsules())
+    #datos derivados de datos extraidos
+    fd = [manhattanDistance(p, x) for x in f.asList()]
+    gp = [x.getPosition() for x in g]
+    gd = [manhattanDistance(p, x) for x in gp]
+    sc = [ghostState.scaredTimer for ghostState in g] 
+    nf = len(fd) 
+    ssc = sum(sc)
+    sgd = sum (gd)
+    
+    
+    reciprocalfoodDistance = 1.0 / (sum(fd) + 0.00001)
+        
+    ret = currentGameState.getScore()  + 1 / (sum(fd) + 0.00001) + nf
+
+    if ssc > 0:    
+        
+        ind = gd.index(min(gd))
+        
+        if sc[ind] > 0:
+            ret +=   ssc + ncaps - sgd
+        else:
+            ret +=   -ssc + ncaps + sgd
+    else :
+        
+        ret +=  sgd - ncaps 
+        
+    return ret
+
+
 
 # Abbreviation
 better = betterEvaluationFunction
